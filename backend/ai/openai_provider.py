@@ -1,3 +1,5 @@
+from collections.abc import AsyncIterator
+
 from openai import AsyncOpenAI
 
 
@@ -15,3 +17,19 @@ class OpenAIProvider:
             input=message,
         )
         return response.output_text
+
+    async def _stream(self, message: str, system_prompt: str | None = None) -> AsyncIterator[str]:
+        stream = await self.client.responses.create(
+            model=self.model,
+            instructions=system_prompt,
+            input=message,
+            stream=True,
+        )
+        async for event in stream:
+            if getattr(event, "type", None) == "response.output_text.delta":
+                delta = getattr(event, "delta", "")
+                if delta:
+                    yield delta
+
+    def stream(self, message: str, system_prompt: str | None = None) -> AsyncIterator[str]:
+        return self._stream(message, system_prompt)
