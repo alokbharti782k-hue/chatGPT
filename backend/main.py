@@ -7,6 +7,7 @@ from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
 from backend.api.chat import router as chat_router
+from backend.api.chat_stream import router as chat_stream_router
 from backend.api.errors import register_exception_handlers
 from backend.api.files import router as files_router
 from backend.api.health import router as health_router
@@ -65,6 +66,7 @@ register_exception_handlers(app)
 app.include_router(health_router)
 app.include_router(status_router)
 app.include_router(chat_router)
+app.include_router(chat_stream_router)
 app.include_router(files_router)
 app.include_router(rag_router)
 
