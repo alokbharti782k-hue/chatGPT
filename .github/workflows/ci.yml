@@ -19,4 +19,6 @@ jobs:
       - name: Compile Python sources
         run: python -m compileall -q backend tests
       - name: Run tests
+        env:
+          PYTHONPATH: .
         run: pytest -q
