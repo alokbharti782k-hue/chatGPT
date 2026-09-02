@@ -13,7 +13,8 @@ class ThreatAssessment:
 
 
 _PATTERNS: tuple[tuple[str, str, str], ...] = (
-    ("prompt_injection", "high", r"ignore\s+(?:all|any|previous)\s+instructions"),
+    # Match common variants such as "ignore all previous instructions".
+    ("prompt_injection", "high", r"ignore(?:\s+\w+){1,5}\s+instructions"),
     ("credential_exfiltration", "critical", r"(?:api[_ -]?key|password|secret|token).{0,40}(?:dump|exfiltrat|send|leak)"),
     ("shell_execution", "high", r"(?:rm\s+-rf|curl\s+[^\n]+\|\s*(?:sh|bash)|powershell\s+-enc)"),
     ("path_traversal", "high", r"(?:\.\./){2,}"),
