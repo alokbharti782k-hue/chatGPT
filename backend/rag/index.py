@@ -56,15 +56,17 @@ class RAGIndex:
                 continue
             document_counts = Counter(document_tokens)
             matched = query_terms & document_counts.keys()
-            if not matched:
-                continue
 
-            # Reward coverage, repeated evidence, and exact phrase presence.
-            coverage = len(matched) / len(query_terms)
-            frequency = sum(min(document_counts[t], query_counts[t]) for t in matched)
-            frequency_score = min(frequency / max(len(query_tokens), 1), 1.0)
-            phrase_bonus = 0.25 if " ".join(query_tokens) in " ".join(document_tokens) else 0.0
-            score = min(coverage * 0.65 + frequency_score * 0.35 + phrase_bonus, 1.0)
+            if matched:
+                coverage = len(matched) / len(query_terms)
+                frequency = sum(min(document_counts[t], query_counts[t]) for t in matched)
+                frequency_score = min(frequency / max(len(query_tokens), 1), 1.0)
+                phrase_bonus = 0.25 if " ".join(query_tokens) in " ".join(document_tokens) else 0.0
+                score = min(coverage * 0.65 + frequency_score * 0.35 + phrase_bonus, 1.0)
+            else:
+                # Preserve a deterministic zero-score fallback so callers can
+                # distinguish "no lexical match" from an empty index.
+                score = 0.0
             scored.append((source, text, score))
 
         scored.sort(key=lambda item: item[2], reverse=True)
