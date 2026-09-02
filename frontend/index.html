@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ALICE AI</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main class="app">
+    <header>
+      <div>
+        <h1>ALICE AI</h1>
+        <p>Modular AI assistant</p>
+      </div>
+      <span id="status" class="status">Offline</span>
+    </header>
+    <section id="messages" class="messages" aria-live="polite"></section>
+    <form id="chat-form" class="composer">
+      <textarea id="message" rows="2" maxlength="10000" placeholder="Message ALICE..." required></textarea>
+      <button type="submit">Send</button>
+    </form>
+  </main>
+  <script src="script.js"></script>
+</body>
+</html>
