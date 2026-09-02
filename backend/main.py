@@ -1,8 +1,8 @@
 from fastapi import FastAPI
 
-app = FastAPI(title="ALICE AI", version="0.1.0")
+from backend.api.health import router as health_router
+from backend.config.settings import get_settings
 
-
-@app.get("/health")
-def health() -> dict[str, str]:
-    return {"status": "ok", "service": "ALICE AI"}
+settings = get_settings()
+app = FastAPI(title=settings.app_name, version="0.1.0", debug=settings.debug)
+app.include_router(health_router)
