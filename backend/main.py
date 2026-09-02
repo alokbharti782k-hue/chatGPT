@@ -9,6 +9,7 @@ from backend.api.chat import router as chat_router
 from backend.api.errors import register_exception_handlers
 from backend.api.files import router as files_router
 from backend.api.health import router as health_router
+from backend.api.status import router as status_router
 from backend.config.settings import get_settings
 
 settings = get_settings()
@@ -24,6 +25,7 @@ app.add_middleware(
 
 register_exception_handlers(app)
 app.include_router(health_router)
+app.include_router(status_router)
 app.include_router(chat_router)
 app.include_router(files_router)
 
