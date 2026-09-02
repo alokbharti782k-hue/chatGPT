@@ -1,14 +1,16 @@
 import json
 import sqlite3
+from collections import Counter
 from pathlib import Path
 from typing import Iterable
 
 from backend.rag.chunker import Chunk
 from backend.rag.loader import load_document
+from backend.rag.text import tokenize
 
 
 class RAGIndex:
-    """Persistent SQLite lexical RAG index for local text/Markdown documents."""
+    """Persistent, dependency-free lexical RAG index for text/Markdown documents."""
 
     def __init__(self, database_path: str = "data/database/alice_rag.db") -> None:
         self.database_path = database_path
@@ -38,16 +40,32 @@ class RAGIndex:
         return sum(self.index_document(path) for path in paths)
 
     def retrieve(self, query: str, top_k: int = 5) -> list[tuple[str, str, float]]:
-        terms = {term.lower() for term in query.split() if term.strip()}
-        if not terms:
+        query_tokens = tokenize(query)
+        if not query_tokens:
             return []
+
+        query_counts = Counter(query_tokens)
+        query_terms = set(query_tokens)
         with sqlite3.connect(self.database_path) as connection:
             rows = connection.execute("SELECT source, text FROM chunks").fetchall()
+
         scored: list[tuple[str, str, float]] = []
         for source, text in rows:
-            words = set(text.lower().split())
-            score = len(terms & words) / len(terms)
-            if score > 0:
-                scored.append((source, text, score))
+            document_tokens = tokenize(text)
+            if not document_tokens:
+                continue
+            document_counts = Counter(document_tokens)
+            matched = query_terms & document_counts.keys()
+            if not matched:
+                continue
+
+            # Reward coverage, repeated evidence, and exact phrase presence.
+            coverage = len(matched) / len(query_terms)
+            frequency = sum(min(document_counts[t], query_counts[t]) for t in matched)
+            frequency_score = min(frequency / max(len(query_tokens), 1), 1.0)
+            phrase_bonus = 0.25 if " ".join(query_tokens) in " ".join(document_tokens) else 0.0
+            score = min(coverage * 0.65 + frequency_score * 0.35 + phrase_bonus, 1.0)
+            scored.append((source, text, score))
+
         scored.sort(key=lambda item: item[2], reverse=True)
         return scored[:top_k]
