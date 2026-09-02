@@ -4,7 +4,7 @@ import json
 from collections.abc import AsyncIterator
 from uuid import uuid4
 
-from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException
 from fastapi.responses import StreamingResponse
 
 from backend.api.schemas import ChatRequest
@@ -20,12 +20,14 @@ def _sse(event: str, payload: object) -> str:
 
 @router.post("/chat/stream")
 async def chat_stream(request: ChatRequest) -> StreamingResponse:
-    # Generate the conversation id before headers are sent so the client always
-    # receives a stable id even when the provider is not configured.
     conversation_id = request.conversation_id or str(uuid4())
-    # Preflight through the same orchestrator security boundary. The stream
-    # performs the same checks again immediately before generation.
-    orchestrator._prepare(request.message, conversation_id)
+    try:
+        orchestrator._prepare(request.message, conversation_id)
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=400,
+            detail="Request rejected by ALICE security controls",
+        ) from exc
 
     async def events() -> AsyncIterator[str]:
         yield _sse("conversation", {"conversation_id": conversation_id})
@@ -33,7 +35,6 @@ async def chat_stream(request: ChatRequest) -> StreamingResponse:
             async for chunk in orchestrator.stream(request.message, conversation_id):
                 yield _sse("delta", {"text": chunk})
         except Exception:
-            # Do not expose provider internals, credentials, prompts, or stack traces.
             yield _sse("error", {"detail": "Streaming generation failed"})
             return
         yield _sse("done", {"conversation_id": conversation_id})
