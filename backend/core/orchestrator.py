@@ -7,6 +7,8 @@ from backend.core.prompts import SYSTEM_PROMPT
 from backend.core.router import route_message
 from backend.memory.database import ConversationStore
 from backend.safety.validator import validate_user_message
+from backend.security.containment import decide
+from backend.security.threat_detection import assess_text
 
 
 @dataclass(slots=True)
@@ -16,7 +18,7 @@ class OrchestratorResult:
 
 
 class Orchestrator:
-    """Coordinates validation, persistent conversation memory, routing, and the LLM."""
+    """Coordinates validation, defensive security gating, memory, routing, and the LLM."""
 
     def __init__(self) -> None:
         self.settings = get_settings()
@@ -27,6 +29,13 @@ class Orchestrator:
         validation = validate_user_message(message)
         if not validation.allowed:
             raise ValueError(validation.reason or "Invalid message")
+
+        security = assess_text(message)
+        containment = decide(security)
+        if not containment.allow:
+            raise ValueError(
+                f"Request blocked by ALICE security controls: {containment.action}"
+            )
 
         if route_message(message).route == "invalid":
             raise ValueError("Invalid message")
