@@ -1,18 +1,20 @@
 from functools import lru_cache
 
+from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
     app_name: str = "ALICE AI"
     environment: str = "development"
-    debug: bool = True
+    debug: bool = False
     openai_api_key: str | None = None
     openai_model: str = "gpt-5.6-luna"
-    llm_timeout_seconds: float = 30.0
+    llm_timeout_seconds: float = Field(default=30.0, gt=0, le=120)
     database_path: str = "data/database/alice.db"
-    max_conversation_messages: int = 20
-    cors_origins: str = "*"
+    rag_database_path: str = "data/database/alice_rag.db"
+    max_conversation_messages: int = Field(default=20, ge=1, le=100)
+    cors_origins: str = "http://localhost:8000,http://127.0.0.1:8000"
 
     model_config = SettingsConfigDict(
         env_file=".env",
