@@ -1,0 +1,18 @@
+from __future__ import annotations
+
+import re
+
+_PATTERNS = (
+    re.compile(r"(?i)(api[_ -]?key\s*[:=]\s*)[^\s,;]+"),
+    re.compile(r"(?i)(password\s*[:=]\s*)[^\s,;]+"),
+    re.compile(r"(?i)(secret\s*[:=]\s*)[^\s,;]+"),
+    re.compile(r"(?i)(token\s*[:=]\s*)[^\s,;]+"),
+    re.compile(r"(?i)(authorization\s*:\s*bearer\s+)[^\s]+"),
+)
+
+
+def redact_secrets(text: str) -> str:
+    """Remove common credential values before text is persisted or logged."""
+    for pattern in _PATTERNS:
+        text = pattern.sub(r"\1[REDACTED]", text)
+    return text
