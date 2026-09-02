@@ -1,0 +1,6 @@
+[
+  {"id":"exact_phrase","query":"underground mine safety","relevant":"safety"},
+  {"id":"partial_terms","query":"mine safety sensor","relevant":"sensor"},
+  {"id":"case_punctuation","query":"IoT-based, SAFETY!","relevant":"iot"},
+  {"id":"numbers","query":"MQ 2 gas sensor","relevant":"gas"}
+]
