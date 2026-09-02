@@ -3,6 +3,8 @@ from uuid import uuid4
 
 from fastapi import APIRouter, UploadFile
 
+from backend.security.file_guard import validate_document_bytes
+
 router = APIRouter(prefix="/api/files", tags=["files"])
 DOCUMENTS_DIR = Path("data/documents")
 MAX_UPLOAD_BYTES = 10 * 1024 * 1024
@@ -22,6 +24,7 @@ async def upload_file(file: UploadFile) -> dict[str, str]:
     data = await file.read(MAX_UPLOAD_BYTES + 1)
     if len(data) > MAX_UPLOAD_BYTES:
         raise ValueError("File exceeds the 10 MB upload limit")
+    validate_document_bytes(data)
 
     DOCUMENTS_DIR.mkdir(parents=True, exist_ok=True)
     stored_name = f"{uuid4().hex}{extension}"

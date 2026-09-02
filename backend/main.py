@@ -1,4 +1,5 @@
 from pathlib import Path
+from uuid import uuid4
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -13,29 +14,52 @@ from backend.api.rag import router as rag_router
 from backend.api.status import router as status_router
 from backend.config.settings import get_settings
 from backend.security.audit import SecurityAuditLog
+from backend.security.auth import authenticate_request
 from backend.security.rate_limit import RateLimiter
 
 settings = get_settings()
-app = FastAPI(title=settings.app_name, version="0.3.0", debug=settings.debug)
-rate_limiter = RateLimiter(limit=60, window_seconds=60.0)
+app = FastAPI(title=settings.app_name, version="1.0.0", debug=settings.debug)
+rate_limiter = RateLimiter(limit=settings.rate_limit_per_minute, window_seconds=60.0)
 audit_log = SecurityAuditLog()
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origin_list,
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "OPTIONS"],
+    allow_headers=["Authorization", "Content-Type"],
 )
+
 
 @app.middleware("http")
 async def security_middleware(request: Request, call_next):
-    if request.url.path.startswith("/api/"):
+    request_id = uuid4().hex
+    path = request.url.path
+    if path.startswith("/api/"):
         client = request.client.host if request.client else "unknown"
         if not rate_limiter.allow(client):
-            audit_log.record("rate_limit_blocked", client=client, path=request.url.path)
-            return JSONResponse(status_code=429, content={"detail": "Rate limit exceeded"})
-    return await call_next(request)
+            audit_log.record("rate_limit_blocked", client=client, path=path, request_id=request_id)
+            return JSONResponse(
+                status_code=429,
+                content={"detail": "Rate limit exceeded", "request_id": request_id},
+                headers={"X-Request-ID": request_id, "Retry-After": "60"},
+            )
+        if not authenticate_request(request.headers.get("Authorization"), settings.api_key):
+            audit_log.record("authentication_failure", client=client, path=path, request_id=request_id)
+            return JSONResponse(
+                status_code=401,
+                content={"detail": "Authentication required", "request_id": request_id},
+                headers={"X-Request-ID": request_id, "WWW-Authenticate": "Bearer"},
+            )
+
+    response = await call_next(request)
+    response.headers["X-Request-ID"] = request_id
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["Referrer-Policy"] = "no-referrer"
+    response.headers["Cache-Control"] = "no-store" if path.startswith("/api/") else response.headers.get("Cache-Control", "")
+    return response
+
 
 register_exception_handlers(app)
 app.include_router(health_router)

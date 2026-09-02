@@ -15,6 +15,8 @@ class Settings(BaseSettings):
     rag_database_path: str = "data/database/alice_rag.db"
     max_conversation_messages: int = Field(default=20, ge=1, le=100)
     cors_origins: str = "http://localhost:8000,http://127.0.0.1:8000"
+    api_key: str | None = None
+    rate_limit_per_minute: int = Field(default=60, ge=1, le=10000)
 
     model_config = SettingsConfigDict(
         env_file=".env",
