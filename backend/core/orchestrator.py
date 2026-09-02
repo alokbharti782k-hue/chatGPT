@@ -1,3 +1,4 @@
+from collections.abc import AsyncIterator
 from dataclasses import dataclass
 from uuid import uuid4
 
@@ -25,7 +26,7 @@ class Orchestrator:
         self.llm = build_llm(self.settings)
         self.store = ConversationStore(self.settings.database_path)
 
-    async def handle(self, message: str, conversation_id: str | None = None) -> OrchestratorResult:
+    def _prepare(self, message: str, conversation_id: str | None) -> tuple[str, list[tuple[str, str]]]:
         validation = validate_user_message(message)
         if not validation.allowed:
             raise ValueError(validation.reason or "Invalid message")
@@ -44,6 +45,10 @@ class Orchestrator:
         history = self.store.get_messages(
             conversation_id, limit=self.settings.max_conversation_messages
         )
+        return conversation_id, history
+
+    async def handle(self, message: str, conversation_id: str | None = None) -> OrchestratorResult:
+        conversation_id, history = self._prepare(message, conversation_id)
         self.store.add_message(conversation_id, "user", message)
 
         prompt = self._build_prompt(history, message)
@@ -57,6 +62,28 @@ class Orchestrator:
 
         self.store.add_message(conversation_id, "assistant", response)
         return OrchestratorResult(response=response, conversation_id=conversation_id)
+
+    async def stream(self, message: str, conversation_id: str | None = None) -> AsyncIterator[str]:
+        """Stream a response while persisting only a successfully completed turn."""
+        conversation_id, history = self._prepare(message, conversation_id)
+        self.store.add_message(conversation_id, "user", message)
+        prompt = self._build_prompt(history, message)
+        chunks: list[str] = []
+        try:
+            async for chunk in self.llm.stream(prompt, SYSTEM_PROMPT):
+                chunks.append(chunk)
+                yield chunk
+        except LLMNotConfiguredError:
+            fallback = (
+                "ALICE is not connected to an LLM yet. Configure OPENAI_API_KEY in the environment "
+                "to enable live AI responses."
+            )
+            chunks.append(fallback)
+            yield fallback
+            return
+
+        response = "".join(chunks)
+        self.store.add_message(conversation_id, "assistant", response)
 
     @staticmethod
     def _build_prompt(history: list[tuple[str, str]], message: str) -> str:

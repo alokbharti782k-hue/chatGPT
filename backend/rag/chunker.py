@@ -8,8 +8,10 @@ class Chunk:
 
 
 def chunk_text(text: str, chunk_size: int = 1000, overlap: int = 150) -> list[Chunk]:
-    if chunk_size <= 0 or overlap < 0 or overlap >= chunk_size:
-        raise ValueError("Require chunk_size > 0 and 0 <= overlap < chunk_size")
+    if chunk_size <= 0 or overlap < 0:
+        raise ValueError("Require chunk_size > 0 and overlap >= 0")
+    if overlap >= chunk_size:
+        overlap = max(0, chunk_size // 2)
     text = text.strip()
     if not text:
         return []
