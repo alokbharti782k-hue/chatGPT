@@ -12,12 +12,10 @@ class ThreatAssessment:
     reasons: tuple[str, ...]
 
 
-# Defensive indicators only: the module identifies suspicious input patterns and
-# never executes payloads or performs offensive security actions.
 _PATTERNS: tuple[tuple[str, str, str], ...] = (
-    ("prompt_injection", "high", r"ignore\s+(all|any|previous)\s+instructions"),
-    ("credential_exfiltration", "critical", r"(api[_ -]?key|password|secret|token).{0,40}(dump|exfiltrat|send|leak)"),
-    ("shell_execution", "high", r"(rm\s+-rf|curl\s+[^\n]+\|\s*(sh|bash)|powershell\s+-enc)"),
+    ("prompt_injection", "high", r"ignore\s+(?:all|any|previous)\s+instructions"),
+    ("credential_exfiltration", "critical", r"(?:api[_ -]?key|password|secret|token).{0,40}(?:dump|exfiltrat|send|leak)"),
+    ("shell_execution", "high", r"(?:rm\s+-rf|curl\s+[^\n]+\|\s*(?:sh|bash)|powershell\s+-enc)"),
     ("path_traversal", "high", r"(?:\.\./){2,}"),
     ("script_execution", "medium", r"<script\b|javascript:\s*"),
 )
@@ -27,11 +25,12 @@ def assess_text(text: str) -> ThreatAssessment:
     if not text or len(text) > 20_000:
         return ThreatAssessment(True, "high", ("invalid_or_oversized_input",))
 
+    normalized = " ".join(text.lower().split())
     reasons: list[str] = []
     highest = "low"
     rank = {"low": 0, "medium": 1, "high": 2, "critical": 3}
     for name, severity, pattern in _PATTERNS:
-        if re.search(pattern, text, flags=re.IGNORECASE | re.DOTALL):
+        if re.search(pattern, normalized, flags=re.IGNORECASE | re.DOTALL):
             reasons.append(name)
             if rank[severity] > rank[highest]:
                 highest = severity
