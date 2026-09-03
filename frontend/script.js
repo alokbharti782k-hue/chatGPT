@@ -4,18 +4,9 @@ const messages = document.querySelector('#messages');
 const status = document.querySelector('#status');
 let conversationId = null;
 
-// The chat endpoints are public and do not require authentication, but we
-// send the Authorization header anyway so requests remain valid if the
-// backend configuration changes. The token can be supplied by the hosting
-// page via `window.API_KEY` (e.g. injected at deploy time).
-const API_KEY = (typeof window !== 'undefined' && window.API_KEY) || '';
-
+// Chat is intentionally public. Never expose OPENAI_API_KEY in frontend code.
 function authHeaders() {
-  const headers = { 'Content-Type': 'application/json' };
-  if (API_KEY) {
-    headers['Authorization'] = `Bearer ${API_KEY}`;
-  }
-  return headers;
+  return { 'Content-Type': 'application/json' };
 }
 
 function addMessage(role, text) {
@@ -26,9 +17,19 @@ function addMessage(role, text) {
   messages.scrollTop = messages.scrollHeight;
 }
 
+async function readResponse(response) {
+  const contentType = response.headers.get('content-type') || '';
+  if (contentType.includes('application/json')) {
+    return await response.json();
+  }
+
+  const text = await response.text();
+  return { detail: text || `Request failed with HTTP ${response.status}` };
+}
+
 async function checkHealth() {
   try {
-    const response = await fetch('/health');
+    const response = await fetch('/health', { cache: 'no-store' });
     status.textContent = response.ok ? 'Online' : 'Offline';
   } catch {
     status.textContent = 'Offline';
@@ -39,18 +40,29 @@ form.addEventListener('submit', async (event) => {
   event.preventDefault();
   const message = input.value.trim();
   if (!message) return;
+
   addMessage('user', message);
   input.value = '';
   form.querySelector('button').disabled = true;
+
   try {
     const response = await fetch('/api/chat', {
       method: 'POST',
       headers: authHeaders(),
+      cache: 'no-store',
       body: JSON.stringify({ message, conversation_id: conversationId })
     });
-    const data = await response.json();
-    if (!response.ok) throw new Error(data.detail || 'Request failed');
-    conversationId = data.conversation_id;
+
+    const data = await readResponse(response);
+    if (!response.ok) {
+      throw new Error(data.detail || `Request failed with HTTP ${response.status}`);
+    }
+
+    if (!data.response) {
+      throw new Error('The server returned no assistant response.');
+    }
+
+    conversationId = data.conversation_id || conversationId;
     addMessage('assistant', data.response);
   } catch (error) {
     addMessage('assistant', `Error: ${error.message}`);
