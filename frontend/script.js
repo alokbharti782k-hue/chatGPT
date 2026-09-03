@@ -4,6 +4,20 @@ const messages = document.querySelector('#messages');
 const status = document.querySelector('#status');
 let conversationId = null;
 
+// The chat endpoints are public and do not require authentication, but we
+// send the Authorization header anyway so requests remain valid if the
+// backend configuration changes. The token can be supplied by the hosting
+// page via `window.API_KEY` (e.g. injected at deploy time).
+const API_KEY = (typeof window !== 'undefined' && window.API_KEY) || '';
+
+function authHeaders() {
+  const headers = { 'Content-Type': 'application/json' };
+  if (API_KEY) {
+    headers['Authorization'] = `Bearer ${API_KEY}`;
+  }
+  return headers;
+}
+
 function addMessage(role, text) {
   const item = document.createElement('div');
   item.className = `message ${role}`;
@@ -31,7 +45,7 @@ form.addEventListener('submit', async (event) => {
   try {
     const response = await fetch('/api/chat', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: authHeaders(),
       body: JSON.stringify({ message, conversation_id: conversationId })
     });
     const data = await response.json();
