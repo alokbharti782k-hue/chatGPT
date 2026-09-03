@@ -34,6 +34,11 @@ app.add_middleware(
     allow_headers=["Authorization", "Content-Type"],
 )
 
+# These two endpoints are the public browser-facing chat surface. They remain
+# protected by the rate limiter, while administrative/status APIs can require
+# the configured Bearer API key. A browser must not receive the private API_KEY.
+PUBLIC_CHAT_PATHS = {"/api/chat", "/api/chat/stream"}
+
 
 @app.middleware("http")
 async def security_middleware(request: Request, call_next):
@@ -51,7 +56,9 @@ async def security_middleware(request: Request, call_next):
                 content={"detail": "Rate limit exceeded", "request_id": request_id},
                 headers={"X-Request-ID": request_id, "Retry-After": "60"},
             )
-        if not authenticate_request(request.headers.get("Authorization"), settings.api_key):
+        if path not in PUBLIC_CHAT_PATHS and not authenticate_request(
+            request.headers.get("Authorization"), settings.api_key
+        ):
             audit_log.record("authentication_failure", client=client, path=path, request_id=request_id)
             metrics.observe_request(started, error=True)
             metrics.observe_security_block()
