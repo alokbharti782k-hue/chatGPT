@@ -47,6 +47,15 @@ class Orchestrator:
         )
         return conversation_id, history
 
+    @staticmethod
+    def _provider_error(exc: Exception) -> str:
+        """Return a useful, non-secret diagnostic for an LLM provider failure."""
+        message = str(exc).strip() or "No additional provider message was supplied."
+        return (
+            "ALICE reached the AI provider, but the provider returned an error. "
+            f"{type(exc).__name__}: {message}"
+        )
+
     async def handle(self, message: str, conversation_id: str | None = None) -> OrchestratorResult:
         conversation_id, history = self._prepare(message, conversation_id)
         self.store.add_message(conversation_id, "user", message)
@@ -59,6 +68,8 @@ class Orchestrator:
                 "ALICE is not connected to an LLM yet. Configure OPENAI_API_KEY in the environment "
                 "to enable live AI responses."
             )
+        except Exception as exc:
+            response = self._provider_error(exc)
 
         self.store.add_message(conversation_id, "assistant", response)
         return OrchestratorResult(response=response, conversation_id=conversation_id)
@@ -80,6 +91,11 @@ class Orchestrator:
             )
             chunks.append(fallback)
             yield fallback
+            return
+        except Exception as exc:
+            error = self._provider_error(exc)
+            chunks.append(error)
+            yield error
             return
 
         response = "".join(chunks)
