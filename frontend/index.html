@@ -3,24 +3,56 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>ALICE AI</title>
-  <link rel="stylesheet" href="/static/style.css?v=20260903">
+  <meta name="theme-color" content="#070a13">
+  <title>ALICE AI — Intelligent Digital Companion</title>
+  <link rel="stylesheet" href="/static/style.css?v=20260903-2">
 </head>
 <body>
-  <main class="app">
-    <header>
-      <div>
-        <h1>ALICE AI</h1>
-        <p>Modular AI assistant</p>
+  <div class="ambient ambient-one"></div>
+  <div class="ambient ambient-two"></div>
+
+  <main class="app-shell">
+    <header class="topbar">
+      <a class="brand" href="/" aria-label="ALICE AI home">
+        <span class="brand-mark" aria-hidden="true"><span></span></span>
+        <span class="brand-copy"><strong>ALICE</strong><small>AI</small></span>
+      </a>
+      <div class="top-actions">
+        <span id="status" class="status"><i></i><span>Connecting</span></span>
+        <button class="icon-button" type="button" id="clear-chat" title="New conversation" aria-label="New conversation">＋</button>
       </div>
-      <span id="status" class="status">Offline</span>
     </header>
+
+    <section class="hero" id="hero">
+      <div class="hero-orb" aria-hidden="true">
+        <div class="orb-core">A</div>
+        <span class="orb-ring ring-one"></span>
+        <span class="orb-ring ring-two"></span>
+      </div>
+      <p class="eyebrow">YOUR INTELLIGENT DIGITAL COMPANION</p>
+      <h1>Think bigger.<br><span>Build with ALICE.</span></h1>
+      <p class="hero-subtitle">Ask questions, explore ideas, write, code, research, and turn ambitious thoughts into action.</p>
+    </section>
+
+    <section class="quick-actions" aria-label="Quick prompts">
+      <button type="button" class="prompt-card" data-prompt="Explain this topic to me simply and give me the most important points to remember."><span>✦</span><strong>Learn</strong><small>Understand any topic</small></button>
+      <button type="button" class="prompt-card" data-prompt="Help me design and improve this idea. Give me a practical step-by-step plan."><span>◈</span><strong>Create</strong><small>Turn ideas into plans</small></button>
+      <button type="button" class="prompt-card" data-prompt="Help me solve this coding problem. Explain the solution clearly and provide clean code."><span>&lt;/&gt;</span><strong>Code</strong><small>Build & debug</small></button>
+      <button type="button" class="prompt-card" data-prompt="Research this subject and give me a concise, well-structured analysis with key findings."><span>⌁</span><strong>Research</strong><small>Explore deeply</small></button>
+    </section>
+
     <section id="messages" class="messages" aria-live="polite"></section>
+
     <form id="chat-form" class="composer">
-      <textarea id="message" rows="2" maxlength="10000" placeholder="Message ALICE..." required></textarea>
-      <button type="submit">Send</button>
+      <div class="composer-inner">
+        <textarea id="message" rows="1" maxlength="10000" placeholder="Ask ALICE anything..." aria-label="Message ALICE" required></textarea>
+        <button class="send-button" type="submit" aria-label="Send message"><span>↑</span></button>
+      </div>
+      <div class="composer-meta"><span>ALICE can make mistakes. Verify important information.</span><kbd>Enter ↵</kbd></div>
     </form>
+
+    <footer>ALICE AI <span>•</span> Intelligent. Curious. Built to create.</footer>
   </main>
-  <script src="/static/script.js?v=20260903"></script>
+  <script src="/static/script.js?v=20260903-2"></script>
 </body>
 </html>
